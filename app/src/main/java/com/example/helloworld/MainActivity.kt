@@ -21,6 +21,8 @@ import androidx.compose.foundation.background
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.platform.LocalContext
+import android.media.MediaPlayer
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -49,7 +51,7 @@ fun FlagQuizApp() {
         R.drawable.japan to "Japan"
     )
 
-    val currentIndex = remember { mutableStateOf(0) } // Track current flag index
+    val currentIndex = remember { mutableStateOf((0 until flags.size).random()) } // Track current flag index
     val context = LocalContext.current
 
     // Simple Gradient Background
@@ -61,10 +63,11 @@ fun FlagQuizApp() {
     val userScore = remember{ mutableStateOf(0)} // Track user score
     val buttonColors = remember { mutableStateOf(Color.Gray) }
     val selectedAnswer = remember { mutableStateOf<String?>(null) }
+    val correctSound = MediaPlayer.create(context, R.raw.correct_answer)
+    val wrongSound = MediaPlayer.create(context, R.raw.wrong_answer)
     val options = remember(currentIndex.value) {
         val shuffledFlags = flags.shuffled()
         val uniqueOptions = mutableSetOf(correctAnswer)
-
         for (flag in shuffledFlags) {
             if (uniqueOptions.size < 4) {
                 uniqueOptions.add(flag.second)
@@ -121,10 +124,12 @@ fun FlagQuizApp() {
                         if (option == correctAnswer) {
                             buttonColors.value = Color.Green
                             userScore.value += 1
+                            correctSound.start()
                             Toast.makeText(context, "Correct!", Toast.LENGTH_SHORT).show()
                         } else {
                             buttonColors.value = Color.Red
                             userScore.value -= 1
+                            wrongSound.start()
                             Toast.makeText(context, "Incorrect. The correct answer is $correctAnswer.", Toast.LENGTH_SHORT).show()
                         }
                     },
