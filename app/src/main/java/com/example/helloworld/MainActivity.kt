@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.background
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.platform.LocalContext
 
 class MainActivity : ComponentActivity() {
@@ -56,6 +57,7 @@ fun FlagQuizApp() {
     )
 
     val correctAnswer = flags[currentIndex.value].second
+    val userScore = remember{ mutableStateOf(0)} // Track user score
     val options = remember(currentIndex.value) {
         val shuffledFlags = flags.shuffled()
         val uniqueOptions = mutableSetOf(correctAnswer)
@@ -92,9 +94,13 @@ fun FlagQuizApp() {
             // Display the question
             Text(
                 text = "Which country's flag is this?",
-                modifier = Modifier.padding(8.dp)
+                modifier = Modifier.padding(10.dp)
             )
-
+            Text(
+                text = "Your score: ${userScore.value}",
+                modifier = Modifier.padding(10.dp),
+                style = MaterialTheme.typography.headlineMedium
+            )
             Spacer(modifier = Modifier.height(16.dp))
 
             // Display the multiple-choice options
@@ -102,8 +108,10 @@ fun FlagQuizApp() {
                 Button(
                     onClick = {
                         if (option == correctAnswer) {
+                            userScore.value += 1
                             Toast.makeText(context, "Correct!", Toast.LENGTH_SHORT).show()
                         } else {
+                            userScore.value -= 1
                             Toast.makeText(context, "Incorrect. The correct answer is $correctAnswer.", Toast.LENGTH_SHORT).show()
                         }
                     },
