@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.background
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.platform.LocalContext
 
@@ -58,6 +59,8 @@ fun FlagQuizApp() {
 
     val correctAnswer = flags[currentIndex.value].second
     val userScore = remember{ mutableStateOf(0)} // Track user score
+    val buttonColors = remember { mutableStateOf(Color.Gray) }
+    val selectedAnswer = remember { mutableStateOf<String?>(null) }
     val options = remember(currentIndex.value) {
         val shuffledFlags = flags.shuffled()
         val uniqueOptions = mutableSetOf(correctAnswer)
@@ -106,11 +109,21 @@ fun FlagQuizApp() {
             // Display the multiple-choice options
             options.forEach { option ->
                 Button(
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor  = when {
+                            selectedAnswer.value == option && option == correctAnswer -> Color.Green
+                            selectedAnswer.value == option && option != correctAnswer -> Color.Red
+                            else -> Color.Gray
+                        }
+                    ),
                     onClick = {
+                        selectedAnswer.value = option
                         if (option == correctAnswer) {
+                            buttonColors.value = Color.Green
                             userScore.value += 1
                             Toast.makeText(context, "Correct!", Toast.LENGTH_SHORT).show()
                         } else {
+                            buttonColors.value = Color.Red
                             userScore.value -= 1
                             Toast.makeText(context, "Incorrect. The correct answer is $correctAnswer.", Toast.LENGTH_SHORT).show()
                         }
@@ -131,6 +144,7 @@ fun FlagQuizApp() {
                     onClick = {
                         // Navigate to the previous flag
                         currentIndex.value = if (currentIndex.value > 0) currentIndex.value - 1 else flags.size - 1
+                        selectedAnswer.value = null
                     },
                     modifier = Modifier.padding(8.dp)
                 ) {
@@ -141,6 +155,7 @@ fun FlagQuizApp() {
                     onClick = {
                         // Navigate to the next flag
                         currentIndex.value = (currentIndex.value + 1) % flags.size
+                        selectedAnswer.value = null
                     },
                     modifier = Modifier.padding(8.dp)
                 ) {
