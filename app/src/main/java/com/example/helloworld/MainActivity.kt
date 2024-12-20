@@ -5,37 +5,62 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.foundation.background
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import android.media.MediaPlayer
-
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            FlagQuizApp()
+            var currentScreen = remember { mutableStateOf("menu") }
+
+            when (currentScreen.value) {
+                "menu" -> MenuScreen { currentScreen.value = "quiz" }
+                "quiz" -> FlagQuizApp { currentScreen.value = "menu" }
+            }
         }
     }
 }
 
 @Composable
-fun FlagQuizApp() {
-    // List of flags and corresponding country names
+fun MenuScreen(onStartQuiz: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF2196F3)),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = "Welcome to Flag Quiz!",
+                style = MaterialTheme.typography.headlineMedium,
+                color = Color.White,
+                modifier = Modifier.padding(bottom = 24.dp)
+            )
+            Button(
+                onClick = onStartQuiz,
+                modifier = Modifier.padding(8.dp)
+            ) {
+                Text("Start Quiz")
+            }
+        }
+    }
+}
+
+@Composable
+fun FlagQuizApp(onBackToMenu: () -> Unit) {
     val flags = listOf(
         R.drawable.uk to "UK",
         R.drawable.usa to "USA",
@@ -51,20 +76,16 @@ fun FlagQuizApp() {
         R.drawable.japan to "Japan"
     )
 
-    val currentIndex = remember { mutableStateOf((0 until flags.size).random()) } // Track current flag index
+    val currentIndex = remember { mutableStateOf((0 until flags.size).random()) }
     val context = LocalContext.current
-
-    // Simple Gradient Background
-    val gradient = Brush.linearGradient(
-        colors = listOf(Color(0xFF00BCD4), Color(0xFF4CAF50))
-    )
-
     val correctAnswer = flags[currentIndex.value].second
-    val userScore = remember{ mutableStateOf(0)} // Track user score
-    val buttonColors = remember { mutableStateOf(Color.Gray) }
+    val userScore = remember { mutableStateOf(0) }
     val selectedAnswer = remember { mutableStateOf<String?>(null) }
     val correctSound = MediaPlayer.create(context, R.raw.correct_answer)
     val wrongSound = MediaPlayer.create(context, R.raw.wrong_answer)
+
+    val gradient = Brush.linearGradient(colors = listOf(Color(0xFF00BCD4), Color(0xFF4CAF50)))
+
     val options = remember(currentIndex.value) {
         val shuffledFlags = flags.shuffled()
         val uniqueOptions = mutableSetOf(correctAnswer)
@@ -73,10 +94,8 @@ fun FlagQuizApp() {
                 uniqueOptions.add(flag.second)
             }
         }
-
         uniqueOptions.shuffled().toList()
     }
-
 
     Box(
         modifier = Modifier
@@ -88,32 +107,32 @@ fun FlagQuizApp() {
             modifier = Modifier.align(Alignment.Center),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Display the current flag
+            Button(
+                onClick = onBackToMenu,
+                modifier = Modifier
+                    .align(Alignment.Start)
+                    .padding(8.dp)
+            ) {
+                Text("Back to Menu")
+            }
+
             Image(
                 painter = painterResource(id = flags[currentIndex.value].first),
                 contentDescription = "Flag of ${flags[currentIndex.value].second}",
                 modifier = Modifier
-                    .size(200.dp) // Equal size for all flags
+                    .size(200.dp)
                     .padding(16.dp)
             )
 
-            // Display the question
-            Text(
-                text = "Which country's flag is this?",
-                modifier = Modifier.padding(10.dp)
-            )
-            Text(
-                text = "Your score: ${userScore.value}",
-                modifier = Modifier.padding(10.dp),
-                style = MaterialTheme.typography.headlineMedium
-            )
+            Text("Which country's flag is this?", Modifier.padding(10.dp))
+            Text("Your score: ${userScore.value}", Modifier.padding(10.dp))
+
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Display the multiple-choice options
             options.forEach { option ->
                 Button(
                     colors = ButtonDefaults.buttonColors(
-                        containerColor  = when {
+                        containerColor = when {
                             selectedAnswer.value == option && option == correctAnswer -> Color.Green
                             selectedAnswer.value == option && option != correctAnswer -> Color.Red
                             else -> Color.Gray
@@ -122,12 +141,10 @@ fun FlagQuizApp() {
                     onClick = {
                         selectedAnswer.value = option
                         if (option == correctAnswer) {
-                            buttonColors.value = Color.Green
                             userScore.value += 1
                             correctSound.start()
                             Toast.makeText(context, "Correct!", Toast.LENGTH_SHORT).show()
                         } else {
-                            buttonColors.value = Color.Red
                             userScore.value -= 1
                             wrongSound.start()
                             Toast.makeText(context, "Incorrect. The correct answer is $correctAnswer.", Toast.LENGTH_SHORT).show()
@@ -143,11 +160,9 @@ fun FlagQuizApp() {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Navigation buttons
             Row(horizontalArrangement = Arrangement.SpaceEvenly) {
                 Button(
                     onClick = {
-                        // Navigate to the previous flag
                         currentIndex.value = if (currentIndex.value > 0) currentIndex.value - 1 else flags.size - 1
                         selectedAnswer.value = null
                     },
@@ -158,7 +173,6 @@ fun FlagQuizApp() {
 
                 Button(
                     onClick = {
-                        // Navigate to the next flag
                         currentIndex.value = (currentIndex.value + 1) % flags.size
                         selectedAnswer.value = null
                     },
