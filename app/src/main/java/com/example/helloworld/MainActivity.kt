@@ -45,13 +45,13 @@ fun MenuScreen(onStartQuiz: () -> Unit) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = "Welcome to Flag Quiz!",
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.headlineLarge,
                 color = Color.White,
-                modifier = Modifier.padding(bottom = 24.dp)
+                modifier = Modifier.padding(bottom = 28.dp)
             )
             Button(
                 onClick = onStartQuiz,
-                modifier = Modifier.padding(8.dp)
+                modifier = Modifier.padding(10.dp)
             ) {
                 Text("Start Quiz")
             }
@@ -60,6 +60,7 @@ fun MenuScreen(onStartQuiz: () -> Unit) {
 }
 
 @Composable
+
 fun FlagQuizApp(onBackToMenu: () -> Unit) {
     val flags = listOf(
         R.drawable.uk to "UK",
@@ -83,6 +84,10 @@ fun FlagQuizApp(onBackToMenu: () -> Unit) {
     val selectedAnswer = remember { mutableStateOf<String?>(null) }
     val correctSound = MediaPlayer.create(context, R.raw.correct_answer)
     val wrongSound = MediaPlayer.create(context, R.raw.wrong_answer)
+
+    val totalQuestions = flags.size
+    val answeredQuestions = remember { mutableStateOf(0) }
+    val gameOverMessage = remember { mutableStateOf(false) }
 
     val gradient = Brush.linearGradient(colors = listOf(Color(0xFF00BCD4), Color(0xFF4CAF50)))
 
@@ -124,8 +129,8 @@ fun FlagQuizApp(onBackToMenu: () -> Unit) {
                     .padding(16.dp)
             )
 
-            Text("Which country's flag is this?", Modifier.padding(10.dp))
-            Text("Your score: ${userScore.value}", Modifier.padding(10.dp))
+            Text("Which country's flag is this?", Modifier.padding(14.dp))
+            Text("Your score: ${userScore.value}", Modifier.padding(14.dp))
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -148,6 +153,14 @@ fun FlagQuizApp(onBackToMenu: () -> Unit) {
                             userScore.value -= 1
                             wrongSound.start()
                             Toast.makeText(context, "Incorrect. The correct answer is $correctAnswer.", Toast.LENGTH_SHORT).show()
+                            gameOverMessage.value = true // End the game if incorrect answer is selected
+                        }
+                        answeredQuestions.value += 1
+
+                        // Check if all questions have been answered correctly
+                        if (answeredQuestions.value == totalQuestions || gameOverMessage.value) {
+                            // Stop the game if all questions are answered or if game over
+                            return@Button
                         }
                     },
                     modifier = Modifier
@@ -180,6 +193,16 @@ fun FlagQuizApp(onBackToMenu: () -> Unit) {
                 ) {
                     Text("Next")
                 }
+            }
+
+            // Show "Game Over" if any answer is incorrect
+            if (gameOverMessage.value) {
+                Text(
+                    text = "Game Over",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = Color.Red,
+                    modifier = Modifier.padding(top = 16.dp)
+                )
             }
         }
     }
