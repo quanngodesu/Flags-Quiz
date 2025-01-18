@@ -19,6 +19,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import android.media.MediaPlayer
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment.Companion.Center
+import androidx.compose.ui.tooling.preview.Preview
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -33,25 +37,24 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
 @Composable
 fun MenuScreen(onStartQuiz: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF2196F3)),
-        contentAlignment = Alignment.Center
+            .background(Color.White),
+        contentAlignment = Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = "Welcome to Flag Quiz!",
                 style = MaterialTheme.typography.headlineLarge,
-                color = Color.White,
+                color = Color.Black,
                 modifier = Modifier.padding(bottom = 28.dp)
             )
             Button(
                 onClick = onStartQuiz,
-                modifier = Modifier.padding(10.dp)
+                modifier = Modifier.padding(20.dp)
             ) {
                 Text("Start Quiz")
             }
@@ -59,8 +62,13 @@ fun MenuScreen(onStartQuiz: () -> Unit) {
     }
 }
 
+@Preview
 @Composable
+fun MenuScreenPreview() {
+    MenuScreen {}
+}
 
+@Composable
 fun FlagQuizApp(onBackToMenu: () -> Unit) {
     val flags = listOf(
         R.drawable.uk to "UK",
@@ -87,123 +95,137 @@ fun FlagQuizApp(onBackToMenu: () -> Unit) {
 
     val totalQuestions = flags.size
     val answeredQuestions = remember { mutableStateOf(0) }
-    val gameOverMessage = remember { mutableStateOf(false) }
+    val gameOver = remember { mutableStateOf(false) }
+    val feedbackMessage = remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(feedbackMessage.value) {
+        feedbackMessage.value?.let { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+            feedbackMessage.value = null
+        }
+    }
+
 
     val gradient = Brush.linearGradient(colors = listOf(Color(0xFF00BCD4), Color(0xFF4CAF50)))
 
-    val options = remember(currentIndex.value) {
-        val shuffledFlags = flags.shuffled()
-        val uniqueOptions = mutableSetOf(correctAnswer)
-        for (flag in shuffledFlags) {
-            if (uniqueOptions.size < 4) {
-                uniqueOptions.add(flag.second)
+    if (gameOver.value) {
+        // Game Over Screen
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.White),
+            contentAlignment = Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "Game Over!",
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = Color.Black,
+                    modifier = Modifier.padding(bottom = 28.dp)
+                )
+                Text(
+                    text = "Your Score: ${userScore.value}",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.Black,
+                    modifier = Modifier.padding(bottom = 28.dp)
+                )
+                Button(
+                    onClick = {
+                        // Restart the game
+                        userScore.value = 0
+                        answeredQuestions.value = 0
+                        gameOver.value = false
+                        currentIndex.value = (0 until flags.size).random()
+                        selectedAnswer.value = null
+                    },
+                    modifier = Modifier.padding(10.dp)
+                ) {
+                    Text("Restart Quiz")
+                }
+                Button(
+                    onClick = onBackToMenu,
+                    modifier = Modifier.padding(10.dp)
+                ) {
+                    Text("Back to Menu")
+                }
             }
         }
-        uniqueOptions.shuffled().toList()
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(gradient)
-            .padding(16.dp)
-    ) {
-        Column(
-            modifier = Modifier.align(Alignment.Center),
-            horizontalAlignment = Alignment.CenterHorizontally
+    } else {
+        // Quiz Screen
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(gradient)
+                .padding(16.dp)
         ) {
-            Button(
-                onClick = onBackToMenu,
-                modifier = Modifier
-                    .align(Alignment.Start)
-                    .padding(8.dp)
+            Column(
+                modifier = Modifier.align(Center),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Back to Menu")
-            }
-
-            Image(
-                painter = painterResource(id = flags[currentIndex.value].first),
-                contentDescription = "Flag of ${flags[currentIndex.value].second}",
-                modifier = Modifier
-                    .size(200.dp)
-                    .padding(16.dp)
-            )
-
-            Text("Which country's flag is this?", Modifier.padding(14.dp))
-            Text("Your score: ${userScore.value}", Modifier.padding(14.dp))
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            options.forEach { option ->
-                Button(
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = when {
-                            selectedAnswer.value == option && option == correctAnswer -> Color.Green
-                            selectedAnswer.value == option && option != correctAnswer -> Color.Red
-                            else -> Color.Gray
-                        }
-                    ),
-                    onClick = {
-                        selectedAnswer.value = option
-                        if (option == correctAnswer) {
-                            userScore.value += 1
-                            correctSound.start()
-                            Toast.makeText(context, "Correct!", Toast.LENGTH_SHORT).show()
-                        } else {
-                            userScore.value -= 1
-                            wrongSound.start()
-                            Toast.makeText(context, "Incorrect. The correct answer is $correctAnswer.", Toast.LENGTH_SHORT).show()
-                            gameOverMessage.value = true // End the game if incorrect answer is selected
-                        }
-                        answeredQuestions.value += 1
-
-                        // Check if all questions have been answered correctly
-                        if (answeredQuestions.value == totalQuestions || gameOverMessage.value) {
-                            // Stop the game if all questions are answered or if game over
-                            return@Button
-                        }
-                    },
+                Image(
+                    painter = painterResource(id = flags[currentIndex.value].first),
+                    contentDescription = "Flag of ${flags[currentIndex.value].second}",
                     modifier = Modifier
-                        .padding(8.dp)
-                        .fillMaxWidth()
-                ) {
-                    Text(option)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Row(horizontalArrangement = Arrangement.SpaceEvenly) {
-                Button(
-                    onClick = {
-                        currentIndex.value = if (currentIndex.value > 0) currentIndex.value - 1 else flags.size - 1
-                        selectedAnswer.value = null
-                    },
-                    modifier = Modifier.padding(8.dp)
-                ) {
-                    Text("Previous")
-                }
-
-                Button(
-                    onClick = {
-                        currentIndex.value = (currentIndex.value + 1) % flags.size
-                        selectedAnswer.value = null
-                    },
-                    modifier = Modifier.padding(8.dp)
-                ) {
-                    Text("Next")
-                }
-            }
-
-            // Show "Game Over" if any answer is incorrect
-            if (gameOverMessage.value) {
-                Text(
-                    text = "Game Over",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = Color.Red,
-                    modifier = Modifier.padding(top = 16.dp)
+                        .size(200.dp)
+                        .padding(16.dp)
                 )
+
+                Text("Which country's flag is this?", Modifier.padding(14.dp))
+                Text("Your score: ${userScore.value}", Modifier.padding(14.dp))
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Display answer options
+                val options = remember(currentIndex.value) {
+                    val shuffledFlags = flags.shuffled()
+                    val uniqueOptions = mutableSetOf(correctAnswer)
+                    for (flag in shuffledFlags) {
+                        if (uniqueOptions.size < 4) {
+                            uniqueOptions.add(flag.second)
+                        }
+                    }
+                    uniqueOptions.shuffled().toList()
+                }
+
+                options.forEach { option ->
+                    Button(
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = when {
+                                selectedAnswer.value == option && option == correctAnswer -> Color.Green
+                                selectedAnswer.value == option && option != correctAnswer -> Color.Red
+                                else -> Color.Gray
+                            }
+                        ),
+                        onClick = {
+                            selectedAnswer.value = option
+                            if (option == correctAnswer) {
+                                userScore.value++
+                                correctSound.start()
+                                Toast.makeText(context, "Correct!", Toast.LENGTH_SHORT).show()
+                            } else {
+                                wrongSound.start()
+                                Toast.makeText(context, "Incorrect. The correct answer is $correctAnswer.", Toast.LENGTH_SHORT).show()
+                                gameOver.value = true // Set game over state
+                            }
+                            answeredQuestions.value++
+
+                            // Load the next question
+                            if (!gameOver.value) {
+                                currentIndex.value = (currentIndex.value + 1) % flags.size
+                                selectedAnswer.value = null
+                            }
+                        },
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .fillMaxWidth()
+                    ) {
+                        Text(option)
+                    }
+                }
             }
         }
     }
 }
+
+
+
+
